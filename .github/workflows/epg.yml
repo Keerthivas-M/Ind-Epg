@@ -1,0 +1,49 @@
+{
+ "name": "Update EPG",
+ "permissions": {
+  "contents": "write"
+ },
+ "jobs": {
+  "grab": {
+   "runs-on": "ubuntu-latest",
+   "timeout-minutes": 180,
+   "steps": [
+    {
+     "uses": "actions/checkout@v4"
+    },
+    {
+     "uses": "actions/setup-node@v4",
+     "with": {
+      "node-version": 22
+     }
+    },
+    {
+     "name": "Download iptv-org EPG tool",
+     "run": "git clone --depth 1 https://github.com/iptv-org/epg.git epg-tool"
+    },
+    {
+     "name": "Install tool",
+     "working-directory": "epg-tool",
+     "run": "npm install"
+    },
+    {
+     "name": "Grab India guide",
+     "working-directory": "epg-tool",
+     "run": "npm run grab --- --sites=dishtv.in,airtelxstream.in --days=3 --maxConnections=5 --output=${{ github.workspace }}/guide.xml --gzip=${{ github.workspace }}/guide.xml.gz\n"
+    },
+    {
+     "name": "Save guide (keeps repo small by replacing old history)",
+     "run": "rm -rf epg-tool guide.xml\ngit config user.name \"github-actions\"\ngit config user.email \"github-actions@users.noreply.github.com\"\ngit checkout --orphan fresh\ngit add -A\ngit commit -m \"EPG update $(date -u +%F)\"\ngit push -f origin fresh:main\n"
+    }
+   ]
+  }
+ },
+ "on": {
+  "schedule": [
+   {
+    "cron": "30 20 * * *"
+   }
+  ],
+  "workflow_dispatch": {}
+ }
+}
